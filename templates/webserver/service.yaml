@@ -1,0 +1,24 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: airflow-webserver
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  labels:
+    tier: airflow
+    component: webserver
+    release: airflow
+spec:
+  type: LoadBalancer
+{{ if eq .Values.environment.development false }}
+  loadBalancerIP: {{ .Values.connections.airflow_webserver_ip }}
+{{ end }}
+  selector:
+    tier: airflow
+    component: webserver
+    release: airflow
+  ports:
+    - name: airflow-ui
+      protocol: TCP
+      port: 80
+      targetPort: 8080

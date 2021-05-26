@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: airflow-migrations
+  annotations: 
+    "helm.sh/hook": post-upgrade  # Runs job after upgrading the chart
+    "helm.sh/hook-weight": "0" # Runs before create user
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: airflow-migrations
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          args: ["db","init"]
+          env:
+            - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: connection-secret
+                  key: connection
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fernet-secret
+                  key: fernet
+
+          volumeMounts:
+            - name: airflow-config
+              mountPath: "/opt/airflow/airflow.cfg"
+              subPath: airflow.cfg
+              readOnly: true
+
+      volumes:
+        - name: airflow-config
+          configMap:
+            name: base-config
+
+      restartPolicy: Never

@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dummy-name
+spec:
+  containers:
+    - args: []
+      name: base
+      command: []
+      resources: 
+        requests:
+          memory: "100Mi"
+          cpu: "100m"
+        limits:
+          memory: "2Gi"
+          cpu: "1"
+
+      imagePullPolicy: IfNotPresent
+      name: base
+      image: dummy_image 
+
+      env:
+        - name: AIRFLOW__CORE__EXECUTOR
+          value: LocalExecutor
+
+        - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: connection-secret
+              key: connection
+              
+        - name: AIRFLOW__CORE__FERNET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fernet-secret
+              key: fernet
+
+      volumeMounts:
+        - name: airflow-logs
+          mountPath: "/opt/airflow/logs"
+          subPath: airflow/logs
+        - name: airflow-dags
+          mountPath: /opt/airflow/dags
+          readOnly: true
+          subPath: airflow/dags
+        - name: airflow-config
+          mountPath: "/opt/airflow/airflow.cfg"
+          subPath: airflow.cfg
+          readOnly: true
+        - name: airflow-config
+          mountPath: /opt/airflow/pod_template_file.yaml
+          subPath: pod_template_file.yaml
+          readOnly: true
+
+  restartPolicy: Never
+  hostNetwork: false
+  securityContext:
+    runAsUser: 50000
+
+  serviceAccountName: scheduler-serviceaccount
+
+  volumes:
+    - name: airflow-dags
+      persistentVolumeClaim:
+        claimName: airflow-dags-claim
+    - name: airflow-logs
+      persistentVolumeClaim:
+        claimName: airflow-logs-claim
+    - name: airflow-config
+      configMap:
+        name: base-config
+

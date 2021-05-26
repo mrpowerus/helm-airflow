@@ -1,0 +1,23 @@
+# Configuration for postgresql subchart
+postgresql:
+  enabled: true
+  postgresqlPassword: postgres
+  postgresqlUsername: postgres
+
+environment:
+  development: false
+  stage: development
+
+connections:
+  airflow_webserver_ip: # Webserver ip here
+  postgress_connection_string: postgresql://postgres:postgres@airflow-postgresql.airflow-development.svc.cluster.local.:5432/postgres?sslmode=disable
+
+volumes:
+  nfs_server_ip: # NFS server ip here
+
+role:
+  namespace: airflow-development
+
+image:
+  repository: # Link to Airflow repo, should be 2.0.0+
+  tag: # custom tag

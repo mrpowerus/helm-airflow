@@ -1,0 +1,13 @@
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: airflow-logs-claim
+spec:
+  volumeName: airflow-{{ .Values.environment.stage }}-log-pv
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Mi

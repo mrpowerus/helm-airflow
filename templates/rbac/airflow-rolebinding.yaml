@@ -1,0 +1,16 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: airflow-pod-launcher-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: airflow-pod-launcher-role
+subjects:
+  - kind: ServiceAccount
+    name: scheduler-serviceaccount
+    namespace: {{ .Values.role.namespace }}
+  - kind: ServiceAccount
+    name: webserver-serviceaccount
+    namespace: {{ .Values.role.namespace }}
+

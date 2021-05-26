@@ -1,0 +1,24 @@
+{{ if eq .Values.environment.development false }}
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: airflow-{{ .Values.environment.stage }}-log-pv
+  labels:
+    type: nfs
+spec:
+  # We tried to use a Microsoft Storage Account with a NFS file share, but ":" were not supported in the filename
+  # That's why we fall back on a VM with an NFS fileserver installed on it.
+  nfs:
+    server: {{ .Values.volumes.nfs_server_ip }}
+    path: "/export/data/{{ .Values.environment.stage }}"
+  
+  storageClassName: ""
+
+  persistentVolumeReclaimPolicy: Retain
+  
+  capacity:
+    storage: 100Mi
+  
+  accessModes:
+    - ReadWriteMany
+  {{ end }}

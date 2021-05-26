@@ -1,0 +1,13 @@
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: airflow-dags-claim
+spec:
+  volumeName: airflow-{{ .Values.environment.stage }}-dag-pv
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Mi

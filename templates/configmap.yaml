@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: base-config
+data:
+  airflow.cfg: |
+    [core]
+    load_examples = False
+    executor = KubernetesExecutor
+    default_timezone = Europe/Amsterdam
+
+    [logging]
+    base_log_folder = /opt/airflow/logs
+    logging_level = INFO
+
+    [kubernetes]
+    pod_template_file = /opt/airflow/pod_template_file.yaml
+    namespace = {{ .Values.role.namespace }}
+    worker_container_repository = {{ .Values.image.repository }}
+    worker_container_tag = {{ .Values.image.tag }}
+    delete_worker_pods = True
+    delete_worker_pods_on_failure = False
+    multi_namespace_mode = False
+    in_cluster = True
+    enable_tcp_keepalive = True
+
+    [webserver]
+    instance_name = Airflow
+
+    [scheduler]
+    min_file_process_interval = 60
+    orphaned_tasks_check_interval = 30
+  
+  pod_template_file.yaml: |-
+    {{ tpl (.Files.Get "pod-template-file.yaml") . | nindent 4 }}
+
+  {{- range $key, $value := .Values.environment_variables }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }} 

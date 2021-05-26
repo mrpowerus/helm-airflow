@@ -1,0 +1,105 @@
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: airflow-scheduler
+  labels:
+    tier: airflow
+    component: scheduler
+    release: airflow
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      tier: airflow
+      component: scheduler
+      release: airflow
+  template:
+    metadata:
+      labels:
+        tier: airflow
+        component: scheduler
+        release: airflow
+    spec:
+
+      restartPolicy: Always
+
+      serviceAccountName: scheduler-serviceaccount
+      
+      containers:
+        - name: scheduler
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          args: ["scheduler"]
+
+          resources: 
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+      
+          env:
+            - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+              valueFrom:
+                secretKeyRef:
+                  name: connection-secret
+                  key: connection
+
+            - name: AIRFLOW__CORE__FERNET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fernet-secret
+                  key: fernet
+
+          livenessProbe:
+            initialDelaySeconds: 600
+            timeoutSeconds: 5
+            failureThreshold: 1
+            periodSeconds: 10
+            exec:
+              command:
+              - /usr/bin/env
+              - AIRFLOW__CORE__LOGGING_LEVEL=ERROR
+              - python3
+              - -Wignore
+              - -c
+              - |
+                from airflow.jobs.scheduler_job import SchedulerJob
+                from airflow.utils.db import create_session
+                from airflow.utils.net import get_hostname
+                import sys
+                with create_session() as session:
+                  job = session.query(SchedulerJob).filter_by(hostname=get_hostname()).order_by(SchedulerJob.latest_heartbeat.desc()).limit(1).first()
+                sys.exit(0 if job.is_alive() else 1)
+
+          volumeMounts:
+            - name: airflow-logs
+              mountPath: "/opt/airflow/logs"
+              subPath: airflow/logs
+            - name: airflow-dags
+              mountPath: /opt/airflow/dags
+              readOnly: true
+              subPath: airflow/dags
+            - name: airflow-config
+              mountPath: "/opt/airflow/airflow.cfg"
+              subPath: airflow.cfg
+              readOnly: true
+            - name: airflow-config
+              mountPath: /opt/airflow/pod_template_file.yaml
+              subPath: pod_template_file.yaml
+              readOnly: true
+
+
+      volumes:
+        - name: airflow-dags
+          persistentVolumeClaim:
+            claimName: airflow-dags-claim
+        - name: airflow-logs
+          persistentVolumeClaim:
+            claimName: airflow-logs-claim
+        - name: airflow-config
+          configMap:
+            name: base-config 
+         
